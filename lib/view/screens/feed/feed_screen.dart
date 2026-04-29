@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mediafarnetcc/view/screens/feed/widgets/avatar_list.dart';
-import 'package:mediafarnetcc/view/core/widgets/posts_list.dart';
-import 'package:mediafarnetcc/view/core/widgets/app_bar_widget.dart';
-import 'package:mediafarnetcc/view/core/widgets/bottom_navigation_widget.dart';
+import 'package:mediafarnetcc/view/screens/feed/widgets/posts_list.dart';
 
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
@@ -18,7 +16,6 @@ class _FeedScreenState extends State<FeedScreen> {
         children: [
           AvatarList(),
           PostsList(),
-
         ]
       );
 

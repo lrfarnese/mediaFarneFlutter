@@ -22,11 +22,11 @@ class _PostlistState extends State<PostsList> {
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
             ),
           ),
-          PostItem(username: 'usuario1', location: 'São Paulo, Brasil',   imageColor: Colors.red,      likes: 123, caption: 'Que dia incrível! '),
-          PostItem(username: 'usuario2', location: 'Rio de Janeiro',       imageColor: Colors.green,    likes: 456, caption: 'Natureza é tudo '),
-          PostItem(username: 'usuario3', location: 'Belo Horizonte',       imageColor: Colors.blue,     likes: 789, caption: 'Céu azul demais '),
-          PostItem(username: 'usuario4', location: 'Curitiba',             imageColor: Colors.orange,   likes: 321, caption: 'Pôr do sol incrível '),
-          PostItem(username: 'usuario5', location: 'Salvador',             imageColor: Colors.blueGrey, likes: 654, caption: 'Saudade do mar '),
+          PostItem(username: 'usuario1',   imageColor: Colors.red,      likes: 123, descricao: 'Que dia incrível! '),
+          PostItem(username: 'usuario2',   imageColor: Colors.green,    likes: 456, descricao: 'Natureza é tudo '),
+          PostItem(username: 'usuario3',   imageColor: Colors.blue,     likes: 789, descricao: 'Céu azul demais '),
+          PostItem(username: 'usuario4',   imageColor: Colors.orange,   likes: 321, descricao: 'Pôr do sol incrível '),
+          PostItem(username: 'usuario5',   imageColor: Colors.blueGrey, likes: 654, descricao: 'Saudade do mar '),
         ],
       ),
     );
@@ -36,18 +36,16 @@ class _PostlistState extends State<PostsList> {
 // cada post tem seu próprio estado
 class PostItem extends StatefulWidget {
   final String username;
-  final String location;
   final Color imageColor;
   final int likes;
-  final String caption;
+  final String descricao;
 
   const PostItem({
     super.key,
     required this.username,
-    required this.location,
     required this.imageColor,
     required this.likes,
-    required this.caption,
+    required this.descricao,
   });
 
   @override
@@ -149,7 +147,7 @@ class _PostItemState extends State<PostItem> {
                 style: TextStyle(color: Colors.black),
                 children: [
                   TextSpan(text: '${widget.username} ', style: TextStyle(fontWeight: FontWeight.bold)),
-                  TextSpan(text: widget.caption),
+                  TextSpan(text: widget.descricao),
                 ],
               ),
             ),

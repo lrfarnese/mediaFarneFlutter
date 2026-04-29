@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mediafarnetcc/view/screens/feed/feed_screen.dart';
+import 'package:mediafarnetcc/view/screens/main/widgets/app_bar_widget.dart';
+import 'package:mediafarnetcc/view/screens/main/widgets/bottom_navigation_widget.dart';
 import 'package:mediafarnetcc/view/screens/profiles/profile_screen.dart';
 import 'package:mediafarnetcc/view/core/theme/app_colors.dart';
-import 'package:mediafarnetcc/view/core/widgets/app_bar_widget.dart';
-import 'package:mediafarnetcc/view/core/widgets/bottom_navigation_widget.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});

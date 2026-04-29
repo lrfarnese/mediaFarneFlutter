@@ -42,7 +42,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
               const SizedBox(height: 60),
 
-              // ---- LOGO ----
+              // logo
               Container(
                 width: 80,
                 height: 80,
@@ -59,7 +59,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
               const SizedBox(height: 20),
 
-              // ---- TÍTULO ----
+              // titulo
               const Text(
                 'MediaFarne',
                 style: TextStyle(
@@ -75,22 +75,42 @@ class _LoginScreenState extends State<LoginScreen> {
 
               const SizedBox(height: 50),
 
-              // ---- CAMPO EMAIL ----
-              _buildInputField(
+
+
+              // input email
+              TextField(
                 controller: _emailController,
-                label: 'E-mail',
-                icon: Icons.email_outlined,
                 keyboardType: TextInputType.emailAddress,
+
+                style: const TextStyle(color: AppColors.white),
+
+                decoration: InputDecoration(
+                  floatingLabelBehavior: FloatingLabelBehavior.never,
+                  labelText: "E-Mail",
+                  labelStyle: const TextStyle(color: AppColors.white),
+                  prefixIcon: Icon(Icons.email_outlined, color: AppColors.white),
+                  filled: true,
+                  fillColor: AppColors.dark,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: AppColors.azulPrincipal, width: 2),
+                  ),
+                ),
               ),
 
               const SizedBox(height: 16),
 
-              // ---- CAMPO SENHA ----
+              // input senha
               TextField(
                 controller: _passwordController,
                 obscureText: _obscurePassword,
                 style: const TextStyle(color: AppColors.white),
                 decoration: InputDecoration(
+                  floatingLabelBehavior: FloatingLabelBehavior.never,
                   labelText: 'Senha',
                   labelStyle: const TextStyle(color: AppColors.white),
                   prefixIcon: const Icon(Icons.lock_outline, color: AppColors.white),
@@ -106,23 +126,20 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                   ),
                   filled: true,
-                  fillColor: const Color(0xFF1C1C1C),
+                  fillColor: AppColors.dark,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
                     borderSide: BorderSide.none,
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: Color(0xFF1E90FF), width: 1.5),
+                    borderSide: const BorderSide(color: AppColors.azulPrincipal, width: 2),
                   ),
                 ),
               ),
 
-              const SizedBox(height: 12),
 
-
-
-              const SizedBox(height: 24),
+              const SizedBox(height: 36),
 
               // ---- BOTÃO ENTRAR ----
               SizedBox(
@@ -134,8 +151,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     irMain(context);
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1E90FF),
-                    foregroundColor: Colors.white,
+                    backgroundColor: AppColors.azulForms,
+                    foregroundColor: AppColors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -162,31 +179,4 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildInputField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    TextInputType keyboardType = TextInputType.text,
-  }) {
-    return TextField(
-      controller: controller,
-      keyboardType: keyboardType,
-      style: const TextStyle(color: AppColors.white),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: AppColors.white),
-        prefixIcon: Icon(icon, color: AppColors.white),
-        filled: true,
-        fillColor: const Color(0xFF1C1C1C),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFF1E90FF), width: 1.5),
-        ),
-      ),
-    );
-  }
 }

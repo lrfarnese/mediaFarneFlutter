@@ -8,6 +8,7 @@ class AppColors {
   static const Color primaryDark  = Color(0xFF4B44CC);
   static const Color primaryLight = Color(0xFF3695D8);
   static const Color azulPrincipal = Color(0xFF1E90FF);
+  static const Color azulForms = Color(0xFF1E90FF);
   // Neutras
   static const Color white        = Color(0xFFFFFFFF);
   static const Color background   = Color(0xFFF5F5F5);
