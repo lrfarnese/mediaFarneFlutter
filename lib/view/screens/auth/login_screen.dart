@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mediafarnetcc/controller/auth_controller.dart';
 import 'package:mediafarnetcc/view/screens/splash/splash2.dart';
 import 'package:mediafarnetcc/view/core/theme/app_colors.dart';
 
@@ -14,18 +15,38 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
+  final authController = AuthController();
+
+  bool _loginInvalido = false;
+
+  Widget erroAutenticacao() {
+    return const Center(
+      child: Text(
+        'Usuário ou senha inválidos',
+        style: TextStyle(
+          color: Colors.red,
+          fontSize: 16,
+        ),
+      ),
+    );
   }
 
-  irMain(context){
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => Splash2()),
+  irMain(context) async {
+    final usuarioVerificado = await authController.realizaLogin(
+      _emailController.text,
+      _passwordController.text,
     );
+
+    if (usuarioVerificado == null) {
+      setState(() {
+        _loginInvalido = true; // avisa o Flutter: redesenhe, agora mostrando o erro
+      });
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => Splash2()),
+      );
+    }
   }
 
 
@@ -139,6 +160,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
 
 
+              if (_loginInvalido) erroAutenticacao(),
               const SizedBox(height: 36),
 
               // ---- BOTÃO ENTRAR ----

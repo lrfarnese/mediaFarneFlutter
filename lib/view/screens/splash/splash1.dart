@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:mediafarnetcc/controller/auth_controller.dart';
 import 'package:mediafarnetcc/view/screens/auth/login_screen.dart';
 import 'package:mediafarnetcc/view/core/theme/app_colors.dart';
+import 'package:mediafarnetcc/view/screens/splash/splash2.dart';
 
 
 class Splash1 extends StatefulWidget {
@@ -12,14 +14,25 @@ class Splash1 extends StatefulWidget {
 
 class _Splash1State extends State<Splash1> {
 
+  final authController = AuthController();
+
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 4), () {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-      );
+    Future.delayed(const Duration(seconds: 4), () async {
+      final usuario = await authController.verificaLogin();
+
+      if (usuario == null) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const Splash2()),
+        );
+      }
     });
   }
 

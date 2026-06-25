@@ -13,6 +13,7 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
+  //Etsado da tela, mostra qual aba esta ativiva
   int _selectedIndex = 0;
 
   final List<Widget> _screens = [
@@ -26,6 +27,7 @@ class _MainScreenState extends State<MainScreen> {
       backgroundColor: AppColors.white,
       appBar: AppBarWidget(),
 
+      //Empilha as telas, mas só mostra 1(baseada no index)
       body: IndexedStack(
         index: _selectedIndex,
         children: _screens,

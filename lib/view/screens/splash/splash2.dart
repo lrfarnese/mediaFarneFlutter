@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:mediafarnetcc/controller/auth_controller.dart';
+import 'package:mediafarnetcc/controller/feed_controller.dart';
 import 'package:mediafarnetcc/view/screens/auth/login_screen.dart';
 import 'package:mediafarnetcc/view/screens/main/main_screen.dart';
 import 'package:mediafarnetcc/view/core/theme/app_colors.dart';
-
 
 class Splash2 extends StatefulWidget {
   const Splash2({super.key});
@@ -12,16 +13,35 @@ class Splash2 extends StatefulWidget {
 }
 
 class _Splash2State extends State<Splash2> {
+  final authController = AuthController();
+  final feedController = FeedController();
 
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 3), () {
+    Future.delayed(const Duration(seconds: 3), () async {
+      await carregaDadosAPI();
+    });
+  }
+
+  Future<void> carregaDadosAPI() async {
+    final usuario = await authController.verificaLogin();
+
+    if (usuario == null) {
+
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const MainScreen()),
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
       );
-    });
+      return;
+    }
+
+    final posts = await feedController.carregarFeed(usuario.tokenAuth);
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const MainScreen()),
+    );
   }
 
   @override
@@ -63,8 +83,6 @@ class _Splash2State extends State<Splash2> {
             ),
 
             const SizedBox(height: 8),
-
-
 
             const SizedBox(height: 50),
 
