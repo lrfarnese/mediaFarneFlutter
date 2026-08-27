@@ -19,6 +19,7 @@ class AuthLocalStorageService {
 
     if (authJson == null) return null;
 
+
     return AuthUser.decode(authJson);
   }
 
@@ -27,4 +28,5 @@ class AuthLocalStorageService {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove(AUTH_USER);
   }
+
 }

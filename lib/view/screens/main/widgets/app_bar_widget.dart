@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mediafarnetcc/controller/auth_controller.dart';
 import 'package:mediafarnetcc/view/core/theme/app_colors.dart';
 import 'package:mediafarnetcc/view/screens/splash/splash1.dart';
 
@@ -6,7 +7,9 @@ class AppBarWidget extends StatelessWidget implements PreferredSizeWidget{
 
   const AppBarWidget({super.key});
 
-  void _logout(BuildContext context) {
+  void _logout(BuildContext context) async {
+
+    await AuthController().logout();
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const Splash1()),

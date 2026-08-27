@@ -1,11 +1,80 @@
 import 'package:flutter/material.dart';
+import 'package:mediafarnetcc/model/user_local_storage_service.dart';
+import 'package:mediafarnetcc/model/classes/user_profile.dart';
 import 'package:mediafarnetcc/view/core/theme/app_colors.dart';
 
-class ProfileMain extends StatelessWidget {
+class ProfileMain extends StatefulWidget {
   const ProfileMain({super.key});
 
   @override
+  State<ProfileMain> createState() => _ProfileMainState();
+}
+
+class _ProfileMainState extends State<ProfileMain> {
+  UserProfile? _userProfile;
+  bool _carregando = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarPerfil();
+  }
+
+  Future<void> _carregarPerfil() async {
+    final perfil = await UserLocalStorageService.carregarUserProfile();
+    setState(() {
+      _userProfile = perfil;
+      _carregando = false;
+    });
+  }
+
+  // Converte 1200 -> "1,2K", 950 -> "950"
+  String _formatarContador(int valor) {
+    if (valor >= 1000) {
+      final double milhar = valor / 1000;
+      return '${milhar.toStringAsFixed(1).replaceAll('.', ',')}K';
+    }
+    return valor.toString();
+  }
+
+  // Converte "1998-03-15" -> "15/03/1998"
+  String _formatarData(String dataIso) {
+    try {
+      final data = DateTime.parse(dataIso);
+      return '${data.day.toString().padLeft(2, '0')}/'
+          '${data.month.toString().padLeft(2, '0')}/'
+          '${data.year}';
+    } catch (_) {
+      return dataIso;
+    }
+  }
+
+  // Converte "2023-01-01T00:00:00.000" -> "Jan 2023"
+  String _formatarMesAno(String dataIso) {
+    const meses = [
+      'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
+      'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
+    ];
+    try {
+      final data = DateTime.parse(dataIso);
+      return '${meses[data.month - 1]} ${data.year}';
+    } catch (_) {
+      return dataIso;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_carregando) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_userProfile == null) {
+      return const Center(child: Text('Nenhum perfil encontrado.'));
+    }
+
+    final perfil = _userProfile!;
+
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.all(16),
@@ -18,26 +87,31 @@ class ProfileMain extends StatelessWidget {
               CircleAvatar(
                 radius: 45,
                 backgroundColor: Colors.black,
-                child: const Icon(Icons.person, color: Colors.white, size: 45),
+                backgroundImage: perfil.urlFotoPerfil.isNotEmpty
+                    ? NetworkImage(perfil.urlFotoPerfil)
+                    : null,
+                child: perfil.urlFotoPerfil.isEmpty
+                    ? const Icon(Icons.person, color: Colors.white, size: 45)
+                    : null,
               ),
 
               const SizedBox(width: 16),
 
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   Text(
-                    'Lucas Farnese',
-                    style: TextStyle(
+                    perfil.name,
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Colors.black87,
                     ),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
-                    '@Farnesinho',
-                    style: TextStyle(
+                    '@${perfil.username}',
+                    style: const TextStyle(
                       fontSize: 14,
                       color: Colors.grey,
                     ),
@@ -58,9 +132,9 @@ class ProfileMain extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _status('42', 'Posts'),
-              _status('1,2K', 'Seguidores'),
-              _status('180', 'Seguindo'),
+              _status(_formatarContador(perfil.qtdPosts), 'Posts'),
+              _status(_formatarContador(perfil.qtdSeguidores), 'Seguidores'),
+              _status(_formatarContador(perfil.qtdSeguindo), 'Seguindo'),
             ],
           ),
 
@@ -69,9 +143,8 @@ class ProfileMain extends StatelessWidget {
           const SizedBox(height: 12),
 
           // ---- INFORMAÇÕES ----
-          _informacoes(Icons.cake,           'Nascimento: 15/03/1998'),
-          _informacoes(Icons.calendar_today, 'Membro desde: Jan 2023'),
-
+          _informacoes(Icons.cake, 'Nascimento: ${_formatarData(perfil.dataNascimento)}'),
+          _informacoes(Icons.calendar_today, 'Membro desde: ${_formatarMesAno(perfil.dataCriacao)}'),
 
         ],
       ),

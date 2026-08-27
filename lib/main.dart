@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:mediafarnetcc/view/screens/auth/login_screen.dart';
-import 'package:mediafarnetcc/view/screens/feed/feed_screen.dart';
-import 'package:mediafarnetcc/view/screens/main/main_screen.dart';
 import 'package:mediafarnetcc/view/screens/splash/splash1.dart';
 
 void main() {
