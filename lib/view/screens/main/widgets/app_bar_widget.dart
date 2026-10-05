@@ -1,18 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:mediafarnetcc/controller/auth_controller.dart';
 import 'package:mediafarnetcc/view/core/theme/app_colors.dart';
-import 'package:mediafarnetcc/view/screens/splash/splash1.dart';
+import 'package:mediafarnetcc/view/screens/auth/login_screen.dart';
 
-class AppBarWidget extends StatelessWidget implements PreferredSizeWidget{
-
+class AppBarWidget extends StatelessWidget implements PreferredSizeWidget {
   const AppBarWidget({super.key});
 
-  void _logout(BuildContext context) async {
+  Future<void> _logout(BuildContext context) async {
+    // 1) Confirmação
+    final confirmou = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Sair'),
+        content: const Text('Deseja sair da sua conta?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Sair'),
+          ),
+        ],
+      ),
+    );
 
+    if (confirmou != true || !context.mounted) return;
+
+    // 2) Loading enquanto o Laravel invalida o token
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const PopScope(
+        canPop: false,
+        child: Center(child: CircularProgressIndicator()),
+      ),
+    );
+
+    // 3) Logout (API + limpeza local)
     await AuthController().logout();
-    Navigator.pushReplacement(
+
+    if (!context.mounted) return;
+
+    // 4) Vai direto ao login e remove todas as telas anteriores
+    Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (context) => const Splash1()),
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+          (route) => false,
     );
   }
 

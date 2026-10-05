@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mediafarnetcc/controller/auth_controller.dart';
+import 'package:mediafarnetcc/model/classes/auth_user.dart';
 import 'package:mediafarnetcc/view/screens/auth/login_screen.dart';
 import 'package:mediafarnetcc/view/core/theme/app_colors.dart';
 import 'package:mediafarnetcc/view/screens/splash/splash2.dart';
@@ -19,21 +20,28 @@ class _Splash1State extends State<Splash1> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 4), () async {
-      final usuario = await authController.verificaLogin();
+    _iniciar();
+  }
+  Future<void> _iniciar() async {
+    final tempoMinimo = Future.delayed(const Duration(seconds: 4));
 
-      if (usuario == null) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
-        );
-      } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const Splash2()),
-        );
-      }
-    });
+    AuthUser? usuario;
+    try {
+      usuario = await authController.verificaLogin();
+    } catch (_) {
+      usuario = null; // qualquer erro inesperado: manda para o login
+    }
+
+    await tempoMinimo; // garante que a splash apareça pelo menos 4s
+    if (!mounted) return;
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+        usuario == null ? const LoginScreen() : const Splash2(),
+      ),
+    );
   }
 
   @override

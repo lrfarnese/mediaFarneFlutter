@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:mediafarnetcc/controller/feed_controller.dart';
+import 'package:mediafarnetcc/model/classes/post.dart';
+import 'package:mediafarnetcc/services/api_client.dart';
 import 'package:mediafarnetcc/view/core/theme/app_colors.dart';
 
 class PostsList extends StatefulWidget {
@@ -9,152 +12,373 @@ class PostsList extends StatefulWidget {
 }
 
 class _PostlistState extends State<PostsList> {
+  Future<void> _atualizar() async {
+    try {
+      await FeedController().carregarFeed();
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.message),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
+    final posts = FeedController.postsCarregados;
+
     return Expanded(
-      child: ListView(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text(
-              "Feed Cronológico",
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-            ),
+      child: Container(
+        color: const Color(0xFFF4F6F8),
+        child: RefreshIndicator(
+          onRefresh: _atualizar,
+          color: AppColors.azulPrincipal,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.only(bottom: 16),
+            children: [
+              // ---- CABEÇALHO ----
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 20, 16, 14),
+                child: Text(
+                  'Feed Cronológico',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: -0.5,
+                    color: Colors.black87,
+                  ),
+                ),
+              ),
+
+              // ---- LISTA VAZIA ----
+              if (posts.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(40),
+                  child: Column(
+                    children: [
+                      Icon(Icons.inbox_outlined,
+                          size: 64, color: Colors.grey[400]),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Nenhum post para mostrar.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              // ---- POSTS ----
+              for (final post in posts)
+                PostItem(
+                  key: ValueKey(
+                    '${post.id}-${post.qtdLikes}-${post.qtdDislikes}-${post.minhaReacao}',
+                  ),
+                  post: post,
+                ),
+            ],
           ),
-          PostItem(username: 'usuario1',   imageColor: Colors.red,      likes: 123, descricao: 'Que dia incrível! '),
-          PostItem(username: 'usuario2',   imageColor: Colors.green,    likes: 456, descricao: 'Natureza é tudo '),
-          PostItem(username: 'usuario3',   imageColor: Colors.blue,     likes: 789, descricao: 'Céu azul demais '),
-          PostItem(username: 'usuario4',   imageColor: Colors.orange,   likes: 321, descricao: 'Pôr do sol incrível '),
-          PostItem(username: 'usuario5',   imageColor: Colors.blueGrey, likes: 654, descricao: 'Saudade do mar '),
-        ],
+        ),
       ),
     );
   }
 }
 
-// cada post tem seu próprio estado
-class PostItem extends StatefulWidget {
-  final String username;
-  final Color imageColor;
-  final int likes;
-  final String descricao;
+// ============================================================
+// POST INDIVIDUAL
+// ============================================================
 
-  const PostItem({
-    super.key,
-    required this.username,
-    required this.imageColor,
-    required this.likes,
-    required this.descricao,
-  });
+class PostItem extends StatefulWidget {
+  final Post post;
+
+  const PostItem({super.key, required this.post});
 
   @override
   State<PostItem> createState() => _PostItemState();
 }
 
 class _PostItemState extends State<PostItem> {
-  bool _curtida = false;
-  bool _descurtida = false;
+  late bool _curtida;
+  late bool _descurtida;
+  late int _qtdLikes;
+  late int _qtdDislikes;
 
+  @override
+  void initState() {
+    super.initState();
+    // Estado e quantidades informados pelo Laravel
+    _curtida = widget.post.curtiu;
+    _descurtida = widget.post.descurtiu;
+    _qtdLikes = widget.post.qtdLikes;
+    _qtdDislikes = widget.post.qtdDislikes;
+  }
+
+  // Por enquanto só muda na tela. Ainda não envia ao Laravel.
   void _estadoCurtida() {
     setState(() {
-      _curtida = !_curtida;
-      if (_curtida) _descurtida = false;
+      if (_curtida) {
+        _curtida = false;
+        _qtdLikes--;
+        return;
+      }
+      if (_descurtida) {
+        _descurtida = false;
+        _qtdDislikes--;
+      }
+      _curtida = true;
+      _qtdLikes++;
     });
   }
 
   void _estadoDescurtida() {
     setState(() {
-      _descurtida = !_descurtida;
-      if (_descurtida) _curtida = false;
+      if (_descurtida) {
+        _descurtida = false;
+        _qtdDislikes--;
+        return;
+      }
+      if (_curtida) {
+        _curtida = false;
+        _qtdLikes--;
+      }
+      _descurtida = true;
+      _qtdDislikes++;
     });
+  }
+
+  Widget _avatarPadrao() {
+    return Container(
+      color: Colors.grey[200],
+      child: Icon(Icons.person, color: Colors.grey[500], size: 24),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final post = widget.post;
+
     return Container(
-      color: AppColors.white,
-      margin: EdgeInsets.only(bottom: 15),
+      margin: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
 
-          // Avatar + nome
+          // ---- AUTOR + TEMPO ----
           Padding(
-            padding: EdgeInsets.all(8),
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: Colors.grey[300],
-                  child: Icon(Icons.person, color: Colors.white),
+                ClipOval(
+                  child: SizedBox(
+                    width: 42,
+                    height: 42,
+                    child: post.autor.urlFotoPerfil.isNotEmpty
+                        ? Image.network(
+                      post.autor.urlFotoPerfil,
+                      webHtmlElementStrategy:
+                      WebHtmlElementStrategy.prefer,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, erro, stack) =>
+                          _avatarPadrao(),
+                    )
+                        : _avatarPadrao(),
+                  ),
                 ),
-                SizedBox(width: 10),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(widget.username, style: TextStyle(fontWeight: FontWeight.bold)),
-                  ],
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        post.autor.username,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      if (post.tempoRelativo.isNotEmpty)
+                        Text(
+                          post.tempoRelativo,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-                Spacer(),
               ],
             ),
           ),
 
-          // Imagem do post
-          Container(height: 300, color: widget.imageColor),
-
-          // Botões curtir / descurtir
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            child: Row(
-              children: [
-                GestureDetector(
-                  onTap: _estadoCurtida,
-                  child: Icon(
-                    _curtida ? Icons.favorite : Icons.favorite_border,
-                    size: 28,
-                    color: _curtida ? Colors.red : Colors.grey,
+          // ---- IMAGEM ----
+          if (post.imagens.isNotEmpty)
+            Image.network(
+              post.imagens.first,
+              webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
+              height: 340,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              loadingBuilder: (context, child, progresso) {
+                if (progresso == null) return child;
+                return Container(
+                  height: 340,
+                  color: Colors.grey[100],
+                  child: const Center(
+                    child: CircularProgressIndicator(strokeWidth: 2),
                   ),
+                );
+              },
+              errorBuilder: (context, erro, stack) => Container(
+                height: 340,
+                color: Colors.grey[100],
+                child: Center(
+                  child: Icon(Icons.broken_image_outlined,
+                      size: 48, color: Colors.grey[400]),
                 ),
-                SizedBox(width: 16),
-                GestureDetector(
-                  onTap: _estadoDescurtida,
-                  child: Icon(
-                    _descurtida ? Icons.heart_broken : Icons.heart_broken_outlined,
-                    size: 26,
-                    color: _descurtida ? Colors.blue : Colors.grey,
-                  ),
-                ),
-                SizedBox(width: 16),
-              ],
-            ),
-          ),
-
-          // Curtidas
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 12),
-            child: Text('${widget.likes} curtidas', style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
-
-          SizedBox(height: 4),
-
-          // Legenda
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 12),
-            child: RichText(
-              text: TextSpan(
-                style: TextStyle(color: Colors.black),
-                children: [
-                  TextSpan(text: '${widget.username} ', style: TextStyle(fontWeight: FontWeight.bold)),
-                  TextSpan(text: widget.descricao),
-                ],
               ),
             ),
+
+          // ---- CURTIR / DESCURTIR ----
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+            child: Row(
+              children: [
+                _BotaoReacao(
+                  iconeAtivo: Icons.favorite,
+                  iconeInativo: Icons.favorite_border,
+                  corAtiva: Colors.redAccent,
+                  ativo: _curtida,
+                  quantidade: _qtdLikes,
+                  onTap: _estadoCurtida,
+                ),
+                const SizedBox(width: 10),
+                _BotaoReacao(
+                  iconeAtivo: Icons.heart_broken,
+                  iconeInativo: Icons.heart_broken_outlined,
+                  corAtiva: Colors.blueAccent,
+                  ativo: _descurtida,
+                  quantidade: _qtdDislikes,
+                  onTap: _estadoDescurtida,
+                ),
+              ],
+            ),
           ),
 
-          SizedBox(height: 12),
+          // ---- LEGENDA ----
+          if (post.conteudo.trim().isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 6, 16, 18),
+              child: RichText(
+                text: TextSpan(
+                  style: const TextStyle(
+                    color: Colors.black87,
+                    fontSize: 14,
+                    height: 1.4,
+                  ),
+                  children: [
+                    TextSpan(
+                      text: '${post.autor.username} ',
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    TextSpan(text: post.conteudo),
+                  ],
+                ),
+              ),
+            )
+          else
+            const SizedBox(height: 14),
         ],
+      ),
+    );
+  }
+}
+
+
+
+class _BotaoReacao extends StatelessWidget {
+  final IconData iconeAtivo;
+  final IconData iconeInativo;
+  final Color corAtiva;
+  final bool ativo;
+  final int quantidade;
+  final VoidCallback onTap;
+
+  const _BotaoReacao({
+    required this.iconeAtivo,
+    required this.iconeInativo,
+    required this.corAtiva,
+    required this.ativo,
+    required this.quantidade,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cor = ativo ? corAtiva : Colors.black54;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: ativo
+              ? corAtiva.withValues(alpha: 0.12)
+              : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedScale(
+              scale: ativo ? 1.15 : 1.0,
+              duration: const Duration(milliseconds: 200),
+              child: Icon(
+                ativo ? iconeAtivo : iconeInativo,
+                color: cor,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '$quantidade',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: cor,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

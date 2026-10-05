@@ -1,105 +1,200 @@
 import 'package:flutter/material.dart';
+import 'package:mediafarnetcc/controller/profile_controller.dart';
+import 'package:mediafarnetcc/model/classes/user_profile.dart';
 
-class AvatarList extends StatefulWidget {
-  const AvatarList({super.key});
+class AvatarList extends StatelessWidget {
+  final UserProfile? meuPerfil;
+  final List<UserProfile>? amigos;
 
-  @override
-  State<StatefulWidget> createState() => _AvatarListState();
-}
+  const AvatarList({
+    super.key,
+    this.meuPerfil,
+    this.amigos,
+  });
 
-class _AvatarListState extends State<AvatarList> {
-  final List<String> _names = [
-    'Ana', 'Carlos', 'Beatriz', 'Diego', 'Fernanda', 'Gabriel', 'Helena',
-  ];
+  Widget _avatarPadrao({bool isOwner = false}) {
+    return Container(
+      color: isOwner ? Colors.blue.shade50 : Colors.black,
+      child: Icon(
+        Icons.person,
+        color: isOwner ? Colors.blue : Colors.white,
+        size: 30,
+      ),
+    );
+  }
 
-  void _alertPerfil(BuildContext context) {
+  void _abrirInfos(BuildContext context, UserProfile amigo) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
         title: Row(
-          children: const [
-            Icon(Icons.person, color: Colors.blue),
-            SizedBox(width: 10),
-            Text(
-              "Informações Perfil",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
+          children: [
+            const Icon(Icons.person, color: Colors.blue),
+            const SizedBox(width: 10),
+            Text('Infos Perfil'),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          children: const [
-            ListTile(
-              leading: Icon(Icons.badge),
-              title: Text("Nome"),
-              subtitle: Text("Lucas Farnese"),
-            ),
-            Divider(),
-            ListTile(
-              leading: Icon(Icons.portrait_sharp),
-              title: Text('Quantidade de Posts'),
-              subtitle: Text('12'),
-            ),
-            Divider(),
-            ListTile(
-              leading: Icon(Icons.people),
-              title: Text("Seguidores"),
-              subtitle: Text("1.234"),
-            ),
-            Divider(),
-            ListTile(
-              leading: Icon(Icons.calendar_today),
-              title: Text("Conta criada em"),
-              subtitle: Text("10/03/2024"),
-            ),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _linhaInfo(Icons.badge, 'Nome', amigo.name.isNotEmpty ? amigo.name : amigo.username),
+            const Divider(),
+            _linhaInfo(Icons.alternate_email, 'Usuário', '@${amigo.username}'),
+            const Divider(),
+            _linhaInfo(Icons.article_outlined, 'Quantidade de Posts', amigo.qtdPosts.toString()),
+            const Divider(),
+            _linhaInfo(Icons.group, 'Seguidores', amigo.qtdSeguidores.toString()),
+            const Divider(),
+            _linhaInfo(Icons.calendar_today, 'Conta criada em', amigo.contaCriadaFormatada),
           ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Fechar"),
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Fechar'),
           ),
         ],
       ),
     );
   }
 
+  Widget _linhaInfo(IconData icone, String titulo, String valor) {
+    return Row(
+      children: [
+        Icon(icone, color: Colors.black54),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(titulo, style: const TextStyle(fontSize: 14, color: Colors.grey)),
+              Text(
+                valor,
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.black87),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // 1. Busca da propriedade informada no construtor ou da lista estática do controller
+    final listaAmigos = amigos ?? ProfileController.amigosCarregados;
+
+    // 2. Perfil padrão para "Você"
+    final perfilVoce = meuPerfil ??
+        UserProfile(
+          email: '',
+          name: 'Você',
+          username: 'voce',
+          dataNascimento: '',
+          qtdPosts: 0,
+          qtdSeguidores: 0,
+          qtdSeguindo: 0,
+          urlFotoPerfil: '',
+          dataCriacao: '',
+        );
+
+    // 3. Monta a lista unificada ("Você" + Amigos)
+    final List<UserProfile> listaExibicao = [perfilVoce, ...listaAmigos];
+
     return SizedBox(
-      height: 100,
+      height: 105,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        itemCount: _names.length,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        itemCount: listaExibicao.length,
         itemBuilder: (context, index) {
-          return Padding(
+          final bool isOwner = index == 0;
+          final perfil = listaExibicao[index];
 
-            padding: const EdgeInsets.only(right: 12,top: 5),
-            child: GestureDetector(
-              onTap:() => _alertPerfil(context),
+          final bool temFoto = perfil.urlFotoPerfil.isNotEmpty &&
+              perfil.urlFotoPerfil != 'null';
+
+          return GestureDetector(
+            // Abre modal apenas se for amigo (isOwner não abre modal)
+            onTap: isOwner ? null : () => _abrirInfos(context, perfil),
+            child: Container(
+              width: 70,
+              margin: const EdgeInsets.symmetric(horizontal: 4),
               child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircleAvatar(
-                  radius: 30,
-                  backgroundColor: Colors.black,
-                  child: const Icon(Icons.person, color: Colors.white),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _names[index],
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: Colors.black87,
-                  ),
-                ),
-              ],
-            ),
+                children: [
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Anel / Borda em volta do Avatar
+                      Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: isOwner
+                              ? const LinearGradient(
+                            colors: [Colors.blue, Colors.lightBlueAccent],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          )
+                              : null,
+                          border: !isOwner
+                              ? Border.all(color: Colors.grey.shade300, width: 2)
+                              : null,
+                        ),
+                        child: ClipOval(
+                          child: SizedBox(
+                            width: 54,
+                            height: 54,
+                            child: temFoto
+                                ? Image.network(
+                              perfil.urlFotoPerfil,
+                              webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, erro, stack) =>
+                                  _avatarPadrao(isOwner: isOwner),
+                            )
+                                : _avatarPadrao(isOwner: isOwner),
+                          ),
+                        ),
+                      ),
 
+                      // Estrelinha no canto para o seu perfil
+                      if (isOwner)
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(3),
+                            decoration: const BoxDecoration(
+                              color: Colors.blue,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.star,
+                              size: 10,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    isOwner ? 'Você' : perfil.primeiroNome,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: isOwner ? FontWeight.bold : FontWeight.normal,
+                      color: isOwner ? Colors.blue : Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         },

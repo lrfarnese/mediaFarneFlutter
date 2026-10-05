@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mediafarnetcc/controller/auth_controller.dart';
 import 'package:mediafarnetcc/view/screens/splash/splash2.dart';
 import 'package:mediafarnetcc/view/core/theme/app_colors.dart';
+import 'package:mediafarnetcc/services/api_client.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,35 +18,58 @@ class _LoginScreenState extends State<LoginScreen> {
 
   final authController = AuthController();
 
-  bool _loginInvalido = false;
+  bool _carregando = false;     // true enquanto espera o servidor
+  String? _mensagemErro;
 
   Widget erroAutenticacao() {
-    return const Center(
-      child: Text(
-        'Usuário ou senha inválidos',
-        style: TextStyle(
-          color: Colors.red,
-          fontSize: 16,
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Center(
+        child: Text(
+          _mensagemErro!,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: Colors.red, fontSize: 16),
         ),
       ),
     );
   }
 
-  irMain(context) async {
-    final usuarioVerificado = await authController.realizaLogin(
-      _emailController.text,
-      _passwordController.text,
-    );
+  Future<void> irMain() async {
+    if (_carregando) return; // evita tocar duas vezes
 
-    if (usuarioVerificado == null) {
-      setState(() {
-        _loginInvalido = true; // avisa o Flutter: redesenhe, agora mostrando o erro
-      });
-    } else {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => Splash2()),
+    setState(() {
+      _carregando = true;
+      _mensagemErro = null;
+    });
+
+    try {
+      final usuarioVerificado = await authController.realizaLogin(
+        _emailController.text.trim(),
+        _passwordController.text,
       );
+
+      if (!mounted) return;
+
+      if (usuarioVerificado == null) {
+        // O Laravel respondeu 401/422: e-mail ou senha errados
+        setState(() => _mensagemErro = 'Usuário ou senha inválidos');
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const Splash2()),
+        );
+      }
+    } on ApiException catch (e) {
+      // Sem conexão, erro 500 etc.
+      if (!mounted) return;
+      setState(() => _mensagemErro = e.message);
+    } catch (e, stack) {
+      debugPrint('ERRO NO LOGIN: $e');
+      debugPrint('$stack');
+      if (!mounted) return;
+      setState(() => _mensagemErro = 'Erro inesperado. Tente novamente.');
+    } finally {
+      if (mounted) setState(() => _carregando = false);
     }
   }
 
@@ -160,7 +184,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
 
 
-              if (_loginInvalido) erroAutenticacao(),
+              if (_mensagemErro != null) erroAutenticacao(),
               const SizedBox(height: 36),
 
               // ---- BOTÃO ENTRAR ----
@@ -168,10 +192,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 width: double.infinity,
                 height: 54,
                 child: ElevatedButton(
-                  onPressed: () {
-                    print('botão clicado');
-                    irMain(context);
-                  },
+                  onPressed: _carregando ? null : irMain,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.azulForms,
                     foregroundColor: AppColors.white,
@@ -180,7 +201,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     elevation: 0,
                   ),
-                  child: const Text(
+                  child: _carregando
+                      ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      color: AppColors.white,
+                      strokeWidth: 2.5,
+                    ),
+                  )
+                      : const Text(
                     'Entrar',
                     style: TextStyle(
                       fontSize: 16,

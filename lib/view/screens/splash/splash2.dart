@@ -4,6 +4,8 @@ import 'package:mediafarnetcc/controller/feed_controller.dart';
 import 'package:mediafarnetcc/view/screens/auth/login_screen.dart';
 import 'package:mediafarnetcc/view/screens/main/main_screen.dart';
 import 'package:mediafarnetcc/view/core/theme/app_colors.dart';
+import 'package:mediafarnetcc/services/api_client.dart';
+import 'package:mediafarnetcc/controller/profile_controller.dart';
 
 class Splash2 extends StatefulWidget {
   const Splash2({super.key});
@@ -15,6 +17,7 @@ class Splash2 extends StatefulWidget {
 class _Splash2State extends State<Splash2> {
   final authController = AuthController();
   final feedController = FeedController();
+  final profileController = ProfileController();
 
   @override
   void initState() {
@@ -26,9 +29,9 @@ class _Splash2State extends State<Splash2> {
 
   Future<void> carregaDadosAPI() async {
     final usuario = await authController.verificaLogin();
+    if (!mounted) return;
 
     if (usuario == null) {
-
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const LoginScreen()),
@@ -36,8 +39,33 @@ class _Splash2State extends State<Splash2> {
       return;
     }
 
-    final posts = await feedController.carregarFeed(usuario.tokenAuth);
+    try {
+      final posts = await feedController.carregarFeed();
+      debugPrint('Posts carregados: ${posts.length}');
+    } on ApiException catch (e) {
+      if (e.statusCode == 401) {
+        // Token inválido: limpa a sessão e volta ao login
+        await authController.logout();
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+        );
+        return;
+      }
+      debugPrint('ERRO AO CARREGAR FEED: ${e.message}');
+    } catch (e, stack) {
+      debugPrint('ERRO AO CARREGAR FEED: $e');
+      debugPrint('$stack');
+    }try {
+      final amigos = await profileController.carregarAmigos();
+      debugPrint('Amigos carregados: ${amigos.length}');
+    } catch (e) {
+      // Se falhar, o carrossel só fica vazio e o app continua normalmente
+      debugPrint('ERRO AO CARREGAR AMIGOS: $e');
+    }
 
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const MainScreen()),

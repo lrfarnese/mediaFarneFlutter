@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mediafarnetcc/model/user_local_storage_service.dart';
+import 'package:mediafarnetcc/controller/profile_controller.dart';
 import 'package:mediafarnetcc/model/classes/user_profile.dart';
+import 'package:mediafarnetcc/services/api_client.dart';
 import 'package:mediafarnetcc/view/core/theme/app_colors.dart';
 
 class ProfileMain extends StatefulWidget {
@@ -11,6 +12,8 @@ class ProfileMain extends StatefulWidget {
 }
 
 class _ProfileMainState extends State<ProfileMain> {
+  final _profileController = ProfileController();
+
   UserProfile? _userProfile;
   bool _carregando = true;
 
@@ -21,11 +24,29 @@ class _ProfileMainState extends State<ProfileMain> {
   }
 
   Future<void> _carregarPerfil() async {
-    final perfil = await UserLocalStorageService.carregarUserProfile();
+    // 1) Mostra rápido o que está salvo no aparelho
+    final local = await _profileController.carregarPerfilLocal();
+    if (!mounted) return;
     setState(() {
-      _userProfile = perfil;
+      _userProfile = local;
       _carregando = false;
     });
+
+    // 2) Em seguida, atualiza com os dados do servidor
+    await _atualizarDoServidor(mostrarErro: false);
+  }
+
+  Future<void> _atualizarDoServidor({required bool mostrarErro}) async {
+    try {
+      final perfil = await _profileController.atualizarPerfil();
+      if (!mounted) return;
+      setState(() => _userProfile = perfil);
+    } on ApiException catch (e) {
+      if (!mounted || !mostrarErro) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    }
   }
 
   // Converte 1200 -> "1,2K", 950 -> "950"
@@ -63,6 +84,13 @@ class _ProfileMainState extends State<ProfileMain> {
     }
   }
 
+  Widget _avatarPadrao() {
+    return Container(
+      color: Colors.black,
+      child: const Icon(Icons.person, color: Colors.white, size: 45),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_carregando) {
@@ -77,76 +105,89 @@ class _ProfileMainState extends State<ProfileMain> {
 
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
+      child: RefreshIndicator(
+        onRefresh: () => _atualizarDoServidor(mostrarErro: true),
+        child: ListView(
+          shrinkWrap: true,
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          children: [
 
-          // ---- AVATAR + NOME ----
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 45,
-                backgroundColor: Colors.black,
-                backgroundImage: perfil.urlFotoPerfil.isNotEmpty
-                    ? NetworkImage(perfil.urlFotoPerfil)
-                    : null,
-                child: perfil.urlFotoPerfil.isEmpty
-                    ? const Icon(Icons.person, color: Colors.white, size: 45)
-                    : null,
-              ),
-
-              const SizedBox(width: 16),
-
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    perfil.name,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
+            // ---- AVATAR + NOME ----
+            Row(
+              children: [
+                ClipOval(
+                  child: SizedBox(
+                    width: 90,
+                    height: 90,
+                    child: perfil.urlFotoPerfil.isNotEmpty
+                        ? Image.network(
+                      perfil.urlFotoPerfil,
+                      webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, erro, stack) =>
+                          _avatarPadrao(),
+                    )
+                        : _avatarPadrao(),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '@${perfil.username}',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey,
-                    ),
+                ),
+
+                const SizedBox(width: 16),
+
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        perfil.name,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '@${perfil.username}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ],
-          ),
+                ),
+              ],
+            ),
 
-          const SizedBox(height: 14),
+            const SizedBox(height: 14),
 
-          // ---- DIVISOR ----
-          const Divider(height: 1, color: AppColors.dark),
+            // ---- DIVISOR ----
+            const Divider(height: 1, color: AppColors.dark),
 
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-          // ---- STATS: POSTS | SEGUIDORES | SEGUINDO ----
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _status(_formatarContador(perfil.qtdPosts), 'Posts'),
-              _status(_formatarContador(perfil.qtdSeguidores), 'Seguidores'),
-              _status(_formatarContador(perfil.qtdSeguindo), 'Seguindo'),
-            ],
-          ),
+            // ---- STATS: POSTS | SEGUIDORES | SEGUINDO ----
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _status(_formatarContador(perfil.qtdPosts), 'Posts'),
+                _status(_formatarContador(perfil.qtdSeguidores), 'Seguidores'),
+                _status(_formatarContador(perfil.qtdSeguindo), 'Seguindo'),
+              ],
+            ),
 
-          const SizedBox(height: 16),
-          const Divider(height: 1, color: AppColors.dark),
-          const SizedBox(height: 12),
+            const SizedBox(height: 16),
+            const Divider(height: 1, color: AppColors.dark),
+            const SizedBox(height: 12),
 
-          // ---- INFORMAÇÕES ----
-          _informacoes(Icons.cake, 'Nascimento: ${_formatarData(perfil.dataNascimento)}'),
-          _informacoes(Icons.calendar_today, 'Membro desde: ${_formatarMesAno(perfil.dataCriacao)}'),
-
-        ],
+            // ---- INFORMAÇÕES ----
+            _informacoes(Icons.cake,
+                'Nascimento: ${_formatarData(perfil.dataNascimento)}'),
+            _informacoes(Icons.calendar_today,
+                'Membro desde: ${_formatarMesAno(perfil.dataCriacao)}'),
+          ],
+        ),
       ),
     );
   }
@@ -165,10 +206,7 @@ class _ProfileMainState extends State<ProfileMain> {
         const SizedBox(height: 2),
         Text(
           label,
-          style: const TextStyle(
-            color: Colors.grey,
-            fontSize: 12,
-          ),
+          style: const TextStyle(color: Colors.grey, fontSize: 12),
         ),
       ],
     );
@@ -183,10 +221,7 @@ class _ProfileMainState extends State<ProfileMain> {
           const SizedBox(width: 10),
           Text(
             text,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.black87,
-            ),
+            style: const TextStyle(fontSize: 14, color: Colors.black87),
           ),
         ],
       ),

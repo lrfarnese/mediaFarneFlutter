@@ -1,14 +1,21 @@
-class FeedController{
+import 'package:mediafarnetcc/model/classes/post.dart';
+import 'package:mediafarnetcc/services/feed_api_service.dart';
 
-  Future<List<String>> carregarFeed(String tokenAuth) async {
-    return await _apiFeed(tokenAuth);
+class FeedController {
+  final FeedApiService _feedApi = FeedApiService();
+
+  /// Lista guardada na memória para qualquer tela ler depois de carregada.
+  static List<Post> postsCarregados = [];
+
+  /// Busca os posts no Laravel e guarda em postsCarregados.
+  /// Não precisa receber o token: o ApiClient já o envia sozinho.
+  Future<List<Post>> carregarFeed() async {
+    final posts = await _feedApi.listarPosts();
+    postsCarregados = posts;
+    return posts;
   }
-
-  Future<List<String>> _apiFeed(String tokenAuth) async {
-    await Future.delayed(const Duration(seconds: 1));
-
-
-    return ['Post 1', 'Post 2', 'Post 3'];
+  static void limpar() {
+    postsCarregados = [];
   }
 
 }
