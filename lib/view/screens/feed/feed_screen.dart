@@ -14,10 +14,9 @@ class _FeedScreenState extends State<FeedScreen> {
   Widget build(BuildContext context) {
     return Column(
       children: const [
-        // 1. AvatarList com altura fixa
         AvatarList(),
 
-        // 2. Expanded obriga o PostsList a ocupar todo o espaço restante na tela
+
         Expanded(
           child: PostsList(),
         ),

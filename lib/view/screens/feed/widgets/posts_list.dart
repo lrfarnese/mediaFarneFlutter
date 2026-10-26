@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mediafarnetcc/controller/feed_controller.dart';
 import 'package:mediafarnetcc/model/classes/post.dart';
 import 'package:mediafarnetcc/services/api_client.dart';
+import 'package:mediafarnetcc/services/feed_api_service.dart';
 import 'package:mediafarnetcc/view/core/theme/app_colors.dart';
 
 class PostsList extends StatefulWidget {
@@ -110,10 +111,13 @@ class PostItem extends StatefulWidget {
 }
 
 class _PostItemState extends State<PostItem> {
+  final FeedApiService _feedService = FeedApiService();
+
   late bool _curtida;
   late bool _descurtida;
   late int _qtdLikes;
   late int _qtdDislikes;
+  bool _enviando = false;
 
   @override
   void initState() {
@@ -125,9 +129,9 @@ class _PostItemState extends State<PostItem> {
     _qtdDislikes = widget.post.qtdDislikes;
   }
 
-  // Por enquanto só muda na tela. Ainda não envia ao Laravel.
-  void _estadoCurtida() {
-    setState(() {
+
+  void _aplicarLocal(String tipo) {
+    if (tipo == 'Like') {
       if (_curtida) {
         _curtida = false;
         _qtdLikes--;
@@ -139,11 +143,7 @@ class _PostItemState extends State<PostItem> {
       }
       _curtida = true;
       _qtdLikes++;
-    });
-  }
-
-  void _estadoDescurtida() {
-    setState(() {
+    } else {
       if (_descurtida) {
         _descurtida = false;
         _qtdDislikes--;
@@ -155,8 +155,54 @@ class _PostItemState extends State<PostItem> {
       }
       _descurtida = true;
       _qtdDislikes++;
-    });
+    }
   }
+
+  Future<void> _reagir(String tipo) async {
+    if (_enviando) return;
+    _enviando = true;
+
+    final curtidaAnterior = _curtida;
+    final descurtidaAnterior = _descurtida;
+    final likesAnterior = _qtdLikes;
+    final dislikesAnterior = _qtdDislikes;
+
+    setState(() => _aplicarLocal(tipo));
+
+    try {
+      final resultado = await _feedService.reagir(widget.post.id, tipo);
+      if (!mounted) return;
+
+      setState(() {
+        _curtida = resultado.curtiu;
+        _descurtida = resultado.descurtiu;
+        _qtdLikes = resultado.likes;
+        _qtdDislikes = resultado.dislikes;
+      });
+    } on ApiException catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _curtida = curtidaAnterior;
+        _descurtida = descurtidaAnterior;
+        _qtdLikes = likesAnterior;
+        _qtdDislikes = dislikesAnterior;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.message),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      _enviando = false;
+    }
+  }
+
+
+  void _estadoCurtida() => _reagir('Like');
+  void _estadoDescurtida() => _reagir('Deslike');
 
   Widget _avatarPadrao() {
     return Container(
@@ -186,7 +232,6 @@ class _PostItemState extends State<PostItem> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
           // ---- AUTOR + TEMPO ----
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
@@ -320,8 +365,6 @@ class _PostItemState extends State<PostItem> {
     );
   }
 }
-
-
 
 class _BotaoReacao extends StatelessWidget {
   final IconData iconeAtivo;

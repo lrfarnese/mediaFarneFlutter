@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mediafarnetcc/controller/profile_controller.dart';
 import 'package:mediafarnetcc/model/classes/user_profile.dart';
+import 'package:mediafarnetcc/services/api_client.dart';
 
-class AvatarList extends StatelessWidget {
+class AvatarList extends StatefulWidget {
   final UserProfile? meuPerfil;
   final List<UserProfile>? amigos;
 
@@ -11,6 +12,42 @@ class AvatarList extends StatelessWidget {
     this.meuPerfil,
     this.amigos,
   });
+
+  @override
+  State<AvatarList> createState() => _AvatarListState();
+}
+
+class _AvatarListState extends State<AvatarList> {
+  final _profileController = ProfileController();
+
+  // Perfil carregado aqui dentro, usado quando meuPerfil não é informado
+  UserProfile? _meuPerfilCarregado;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.meuPerfil == null) {
+      _carregarMeuPerfil();
+    }
+  }
+
+  Future<void> _carregarMeuPerfil() async {
+    // 1) Mostra rápido o que está salvo no aparelho
+    final local = await _profileController.carregarPerfilLocal();
+    if (!mounted) return;
+    if (local != null) {
+      setState(() => _meuPerfilCarregado = local);
+    }
+
+    // 2) Atualiza com os dados do servidor
+    try {
+      final perfil = await _profileController.atualizarPerfil();
+      if (!mounted) return;
+      setState(() => _meuPerfilCarregado = perfil);
+    } on ApiException {
+      // mantém o perfil local se o servidor falhar
+    }
+  }
 
   Widget _avatarPadrao({bool isOwner = false}) {
     return Container(
@@ -34,22 +71,26 @@ class AvatarList extends StatelessWidget {
           children: [
             const Icon(Icons.person, color: Colors.blue),
             const SizedBox(width: 10),
-            Text('Infos Perfil'),
+            const Text('Infos Perfil'),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _linhaInfo(Icons.badge, 'Nome', amigo.name.isNotEmpty ? amigo.name : amigo.username),
+            _linhaInfo(Icons.badge, 'Nome',
+                amigo.name.isNotEmpty ? amigo.name : amigo.username),
             const Divider(),
             _linhaInfo(Icons.alternate_email, 'Usuário', '@${amigo.username}'),
             const Divider(),
-            _linhaInfo(Icons.article_outlined, 'Quantidade de Posts', amigo.qtdPosts.toString()),
+            _linhaInfo(Icons.article_outlined, 'Quantidade de Posts',
+                amigo.qtdPosts.toString()),
             const Divider(),
-            _linhaInfo(Icons.group, 'Seguidores', amigo.qtdSeguidores.toString()),
+            _linhaInfo(
+                Icons.group, 'Seguidores', amigo.qtdSeguidores.toString()),
             const Divider(),
-            _linhaInfo(Icons.calendar_today, 'Conta criada em', amigo.contaCriadaFormatada),
+            _linhaInfo(Icons.calendar_today, 'Conta criada em',
+                amigo.contaCriadaFormatada),
           ],
         ),
         actions: [
@@ -71,10 +112,14 @@ class AvatarList extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(titulo, style: const TextStyle(fontSize: 14, color: Colors.grey)),
+              Text(titulo,
+                  style: const TextStyle(fontSize: 14, color: Colors.grey)),
               Text(
                 valor,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.black87),
+                style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black87),
               ),
             ],
           ),
@@ -85,11 +130,12 @@ class AvatarList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Busca da propriedade informada no construtor ou da lista estática do controller
-    final listaAmigos = amigos ?? ProfileController.amigosCarregados;
+    // 1. Amigos: construtor ou lista estática do controller
+    final listaAmigos = widget.amigos ?? ProfileController.amigosCarregados;
 
-    // 2. Perfil padrão para "Você"
-    final perfilVoce = meuPerfil ??
+    // 2. "Você": construtor > perfil carregado aqui > perfil padrão
+    final perfilVoce = widget.meuPerfil ??
+        _meuPerfilCarregado ??
         UserProfile(
           email: '',
           name: 'Você',
@@ -102,7 +148,7 @@ class AvatarList extends StatelessWidget {
           dataCriacao: '',
         );
 
-    // 3. Monta a lista unificada ("Você" + Amigos)
+    // 3. Lista unificada ("Você" + Amigos)
     final List<UserProfile> listaExibicao = [perfilVoce, ...listaAmigos];
 
     return SizedBox(
@@ -142,7 +188,8 @@ class AvatarList extends StatelessWidget {
                           )
                               : null,
                           border: !isOwner
-                              ? Border.all(color: Colors.grey.shade300, width: 2)
+                              ? Border.all(
+                              color: Colors.grey.shade300, width: 2)
                               : null,
                         ),
                         child: ClipOval(
@@ -152,7 +199,8 @@ class AvatarList extends StatelessWidget {
                             child: temFoto
                                 ? Image.network(
                               perfil.urlFotoPerfil,
-                              webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
+                              webHtmlElementStrategy:
+                              WebHtmlElementStrategy.prefer,
                               fit: BoxFit.cover,
                               errorBuilder: (context, erro, stack) =>
                                   _avatarPadrao(isOwner: isOwner),

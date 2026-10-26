@@ -49,7 +49,7 @@ class _ProfileMainState extends State<ProfileMain> {
     }
   }
 
-  // Converte 1200 -> "1,2K", 950 -> "950"
+
   String _formatarContador(int valor) {
     if (valor >= 1000) {
       final double milhar = valor / 1000;
@@ -58,7 +58,7 @@ class _ProfileMainState extends State<ProfileMain> {
     return valor.toString();
   }
 
-  // Converte "1998-03-15" -> "15/03/1998"
+
   String _formatarData(String dataIso) {
     try {
       final data = DateTime.parse(dataIso);
@@ -70,7 +70,7 @@ class _ProfileMainState extends State<ProfileMain> {
     }
   }
 
-  // Converte "2023-01-01T00:00:00.000" -> "Jan 2023"
+
   String _formatarMesAno(String dataIso) {
     const meses = [
       'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
@@ -113,7 +113,7 @@ class _ProfileMainState extends State<ProfileMain> {
           padding: const EdgeInsets.all(16),
           children: [
 
-            // ---- AVATAR + NOME ----
+
             Row(
               children: [
                 ClipOval(
